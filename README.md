@@ -103,7 +103,7 @@ and classifies combustion as
 
 ## Author
 
-Sabavath Vijendra
+Sudhishna Ravichandran
 
 B.Tech Mechanical Engineering
 
