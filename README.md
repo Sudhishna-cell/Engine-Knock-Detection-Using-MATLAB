@@ -90,8 +90,10 @@ and classifies combustion as
 - Knock Detected
 - No Knock
 
-- ##Images
+##Images
 - <img width="282" height="390" alt="Screenshot 2026-06-28 175118" src="https://github.com/user-attachments/assets/a58a9e7a-a282-41d2-a7fd-c7be6f45ad03" />
+<img width="263" height="413" alt="Screenshot 2026-06-28 175219" src="https://github.com/user-attachments/assets/89723233-b6af-4786-9d67-3ca5f4f7ab4d" />
+
 
 
 ---
