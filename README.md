@@ -90,13 +90,13 @@ and classifies combustion as
 - Knock Detected
 - No Knock
 
-##Images
+## Interactive Dashboard
 
  <img width="282" height="390" alt="Screenshot 2026-06-28 175118" src="https://github.com/user-attachments/assets/a58a9e7a-a282-41d2-a7fd-c7be6f45ad03" />
 
  ## Cylinder Pressure Trace
 
-The cylinder pressure trace is generated using the First Law of Thermodynamics combined with the Wiebe heat release model, showing pressure variation over the complete 720° engine cycle.
+- The cylinder pressure trace is generated using the First Law of Thermodynamics combined with the Wiebe heat release model, showing pressure variation over the complete 720° engine cycle.
 
  <img width="1618" height="325" alt="Screenshot 2026-06-28 175134" src="https://github.com/user-attachments/assets/7abdf201-ff37-40a8-a6e9-0bdfef04bfb3" />
  <img width="813" height="275" alt="Screenshot 2026-06-28 175141" src="https://github.com/user-attachments/assets/2718d14d-be8e-4b73-92e7-573403980476" />
