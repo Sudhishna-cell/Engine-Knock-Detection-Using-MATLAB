@@ -1,0 +1,443 @@
+
+<h2 class="sr-only">Engine knock detection interactive dashboard — tune bore, stroke, compression ratio and RPM to see cylinder pressure trace, FFT spectrum and knock intensity index update live.</h2>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.wrap{padding:1rem 0;font-family:var(--font-sans)}
+.header{margin-bottom:1.25rem}
+.header h1{font-size:18px;font-weight:500;color:var(--color-text-primary)}
+.header p{font-size:13px;color:var(--color-text-secondary);margin-top:3px}
+.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:var(--border-radius-md);margin-left:8px;vertical-align:middle}
+.badge-green{background:var(--color-background-success);color:var(--color-text-success)}
+.badge-red{background:var(--color-background-danger);color:var(--color-text-danger)}
+.layout{display:grid;grid-template-columns:220px 1fr;gap:16px}
+.panel{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1rem}
+.panel-title{font-size:12px;font-weight:500;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.04em;margin-bottom:12px}
+.ctrl{margin-bottom:14px}
+.ctrl label{font-size:12px;color:var(--color-text-secondary);display:flex;justify-content:space-between;margin-bottom:4px}
+.ctrl label span{font-weight:500;color:var(--color-text-primary)}
+.ctrl input[type=range]{width:100%}
+.engine-select{width:100%;font-size:13px;padding:6px 8px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:var(--color-background-secondary);color:var(--color-text-primary);margin-bottom:14px}
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.metric{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px}
+.metric .mlabel{font-size:11px;color:var(--color-text-secondary);margin-bottom:2px}
+.metric .mval{font-size:17px;font-weight:500;color:var(--color-text-primary)}
+.metric .munit{font-size:11px;color:var(--color-text-secondary)}
+.decision{border-radius:var(--border-radius-md);padding:10px 12px;text-align:center;margin-top:8px}
+.decision .dlabel{font-size:11px;font-weight:500;letter-spacing:.04em;margin-bottom:2px}
+.decision .dratio{font-size:20px;font-weight:500}
+.knock-yes{background:var(--color-background-danger);color:var(--color-text-danger)}
+.knock-no{background:var(--color-background-success);color:var(--color-text-success)}
+.charts{display:grid;grid-template-columns:1fr;gap:12px}
+.chart-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1rem}
+.chart-title{font-size:12px;font-weight:500;color:var(--color-text-secondary);margin-bottom:8px}
+.chart-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tabs{display:flex;gap:4px;margin-bottom:10px}
+.tab{font-size:12px;padding:4px 10px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-tertiary);background:transparent;color:var(--color-text-secondary);cursor:pointer}
+.tab.active{background:var(--color-background-secondary);color:var(--color-text-primary);border-color:var(--color-border-secondary)}
+.info-row{display:flex;gap:16px;flex-wrap:wrap;margin-top:8px}
+.info-item{font-size:11px;color:var(--color-text-secondary)}
+.info-item span{color:var(--color-text-primary);font-weight:500}
+</style>
+
+<div class="wrap">
+<div class="header">
+  <h1>Engine knock detection <span id="knock-badge" class="badge badge-red">knock detected</span></h1>
+  <p>Toyota 2NZ-FE 1.3L · First-law ODE pressure model · FFT + Knock Intensity Index · Bessel acoustic resonance</p>
+</div>
+
+<div class="layout">
+  <div>
+    <div class="panel">
+      <div class="panel-title">Engine configuration</div>
+      <select class="engine-select" id="preset" onchange="applyPreset()">
+        <option value="2nz">Toyota 2NZ-FE (75mm)</option>
+        <option value="k10b">Maruti K10B (68mm)</option>
+        <option value="meteor">RE Meteor (90mm)</option>
+        <option value="custom">Custom</option>
+      </select>
+
+      <div class="ctrl">
+        <label>Bore <span><span id="bore-val">75</span> mm</span></label>
+        <input type="range" id="bore" min="60" max="100" step="1" value="75" oninput="onSlider('bore','bore-val',1);recompute()">
+      </div>
+      <div class="ctrl">
+        <label>Stroke <span><span id="stroke-val">77</span> mm</span></label>
+        <input type="range" id="stroke" min="60" max="100" step="1" value="77" oninput="onSlider('stroke','stroke-val',1);recompute()">
+      </div>
+      <div class="ctrl">
+        <label>Compression ratio <span><span id="cr-val">10.5</span>:1</span></label>
+        <input type="range" id="cr" min="8" max="14" step="0.5" value="10.5" oninput="onSlider('cr','cr-val',1);recompute()">
+      </div>
+      <div class="ctrl">
+        <label>RPM <span><span id="rpm-val">3000</span></span></label>
+        <input type="range" id="rpm" min="1000" max="6000" step="100" value="3000" oninput="onSlider('rpm','rpm-val',0);recompute()">
+      </div>
+      <div class="ctrl">
+        <label>Knock amplitude <span><span id="ka-val">1.5</span> bar</span></label>
+        <input type="range" id="ka" min="0" max="5" step="0.1" value="1.5" oninput="onSlider('ka','ka-val',1);recompute()">
+      </div>
+
+      <div class="panel-title" style="margin-top:4px">Key outputs</div>
+      <div class="metrics">
+        <div class="metric"><div class="mlabel">Peak pressure</div><div class="mval" id="m-ppeak">--</div><div class="munit">bar</div></div>
+        <div class="metric"><div class="mlabel">f_knock</div><div class="mval" id="m-fknock">--</div><div class="munit">kHz</div></div>
+        <div class="metric"><div class="mlabel">Peak @ TDC</div><div class="mval" id="m-peakang">--</div><div class="munit">deg</div></div>
+        <div class="metric"><div class="mlabel">BDC pressure</div><div class="mval" id="m-pbdc">--</div><div class="munit">bar</div></div>
+        <div class="metric"><div class="mlabel">Freq error</div><div class="mval" id="m-ferr">--</div><div class="munit">%</div></div>
+        <div class="metric"><div class="mlabel">Peak SNR</div><div class="mval" id="m-snr">--</div><div class="munit">dB</div></div>
+      </div>
+
+      <div class="decision" id="decision-box">
+        <div class="dlabel" id="decision-label">KNOCK DETECTED</div>
+        <div class="dratio">KI ratio: <span id="m-kiratio">--</span>×</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="charts">
+    <div class="chart-card">
+      <div class="chart-title">Cylinder pressure trace — full 720° cycle</div>
+      <div style="position:relative;height:180px">
+        <canvas id="c-pressure" role="img" aria-label="Cylinder pressure vs crank angle showing intake compression combustion expansion and exhaust strokes"></canvas>
+      </div>
+      <div class="info-row">
+        <div class="info-item">Ignition <span>−10° BTDC</span></div>
+        <div class="info-item">Combustion end <span>+25° ATDC</span></div>
+        <div class="info-item">Model <span>First-law ODE + Wiebe</span></div>
+      </div>
+    </div>
+
+    <div class="chart-row">
+      <div class="chart-card">
+        <div class="chart-title">FFT spectrum — combustion window (−20° to +60°)</div>
+        <div style="position:relative;height:160px">
+          <canvas id="c-fft" role="img" aria-label="FFT magnitude spectrum showing knock peak at f_knock frequency"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Knock ring signal — time domain</div>
+        <div style="position:relative;height:160px">
+          <canvas id="c-ring" role="img" aria-label="Damped sinusoidal knock ring signal in time domain"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">KI ratio vs knock amplitude — detection sensitivity</div>
+      <div style="position:relative;height:130px">
+        <canvas id="c-sens" role="img" aria-label="KI ratio plotted against knock amplitude showing detection threshold crossing"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const PRESETS = {
+  '2nz':   {bore:75,  stroke:77,  cr:10.5},
+  'k10b':  {bore:68,  stroke:72,  cr:10.0},
+  'meteor':{bore:90,  stroke:83,  cr:9.5},
+  'custom':{bore:75,  stroke:77,  cr:10.5}
+};
+
+function onSlider(id, outId, dec) {
+  const v = parseFloat(document.getElementById(id).value);
+  document.getElementById(outId).textContent = v.toFixed(dec);
+  document.getElementById('preset').value = 'custom';
+}
+
+function applyPreset() {
+  const k = document.getElementById('preset').value;
+  const p = PRESETS[k];
+  setSlider('bore','bore-val',p.bore,1);
+  setSlider('stroke','stroke-val',p.stroke,1);
+  setSlider('cr','cr-val',p.cr,1);
+  recompute();
+}
+
+function setSlider(id,outId,val,dec){
+  document.getElementById(id).value = val;
+  document.getElementById(outId).textContent = parseFloat(val).toFixed(dec);
+}
+
+function getVal(id){return parseFloat(document.getElementById(id).value);}
+
+function engineVolume(thetaDeg, stroke, bore, cr) {
+  const r = stroke/2, L = r/0.3;
+  const lam = r/L;
+  const rad = thetaDeg*Math.PI/180;
+  const Vd = Math.PI/4*bore*bore*stroke;
+  const Vc = Vd/(cr-1);
+  const s = r*(1-Math.cos(rad)) + L*(1-Math.sqrt(1-(lam*Math.sin(rad))**2));
+  return Vc + Math.PI/4*bore*bore*s;
+}
+
+function dVdtheta(thetaDeg, stroke, bore) {
+  const r=stroke/2, L=r/0.3, lam=r/L;
+  const rad=thetaDeg*Math.PI/180;
+  const A=Math.PI/4*bore*bore;
+  const ds=(r*Math.sin(rad)+(r*r*Math.sin(2*rad))/(2*L*Math.sqrt(1-(lam*Math.sin(rad))**2)))*(Math.PI/180);
+  return A*ds;
+}
+
+function wiebeDQ(th, th_ign, delta_th, Q_total, a, m){
+  if(th<th_ign||th>th_ign+delta_th) return 0;
+  const xi=(th-th_ign)/delta_th;
+  return Q_total*(a*(m+1)/delta_th)*Math.pow(xi,m)*Math.exp(-a*Math.pow(xi,m+1));
+}
+
+function computePressure(bore_m, stroke_m, cr, rpm) {
+  const N=720, dth=1;
+  const theta=[], P=[], T=[];
+  const P_intake=0.92*101325, T_intake=330, R=287;
+  const th_ign=-10, delta_th=35, Q_total=700;
+  const a_w=5, m_w=2, gComp=1.35, gExp=1.28;
+  const V_bdc=engineVolume(-180,stroke_m,bore_m,cr);
+  const m_cyl=(P_intake*V_bdc)/(R*T_intake);
+
+  for(let i=0;i<=N;i++){
+    theta.push(-360+i*dth);
+    P.push(0); T.push(0);
+  }
+  const idx=(ang)=>Math.round(ang+360);
+
+  for(let i=0;i<idx(-180);i++){P[i]=P_intake;T[i]=T_intake;}
+  P[idx(-180)]=P_intake; T[idx(-180)]=T_intake;
+
+  for(let i=idx(-180);i<idx(180);i++){
+    const th=theta[i], h=dth;
+    const Vn=engineVolume(th,stroke_m,bore_m,cr);
+    const dVn=dVdtheta(th,stroke_m,bore_m);
+    const g=th<th_ign?gComp:gExp;
+    const dQ=wiebeDQ(th,th_ign,delta_th,Q_total,a_w,m_w);
+    const dP=((g-1)/Vn)*dQ-(g*P[i]/Vn)*dVn;
+    P[i+1]=P[i]+h*dP;
+    const Vn1=engineVolume(th+h,stroke_m,bore_m,cr);
+    T[i+1]=(P[i+1]*Vn1)/(m_cyl*R);
+  }
+
+  for(let i=idx(180)+1;i<=N;i++){P[i]=1.07*101325;T[i]=900;}
+  return {theta, P, T};
+}
+
+function computeFFT(P_signal, theta, fs, f_knock, A_knock, delta_damp, rpm) {
+  const deg_per_sec = rpm*360/60;
+  const cycle_time = 720/deg_per_sec;
+  const N = P_signal.length;
+  const t_cycle = P_signal.map((_,i)=>i/(N-1)*cycle_time);
+  const theta_time = P_signal.map((_,i)=>-360+i*720/(N-1));
+
+  const knock_onset = 10;
+  const t_onset = (knock_onset+360)/deg_per_sec;
+  const N_ring = Math.round((5/delta_damp)*fs);
+  const t_ring = Array.from({length:N_ring},(_,i)=>i/fs);
+  const P_ring = t_ring.map(t=>A_knock*Math.exp(-delta_damp*t)*Math.sin(2*Math.PI*f_knock*t));
+
+  const P_knock = [...P_signal];
+  const onset_idx = t_cycle.reduce((bi,t,i)=>Math.abs(t-t_onset)<Math.abs(t_cycle[bi]-t_onset)?i:bi,0);
+  for(let i=0;i<Math.min(N_ring,N-onset_idx);i++){
+    P_knock[onset_idx+i]+=P_ring[i];
+  }
+
+  const w_start=-20, w_end=60;
+  const seg_n=[], seg_k=[], seg_th=[];
+  for(let i=0;i<N;i++){
+    if(theta_time[i]>=w_start&&theta_time[i]<=w_end){
+      seg_n.push(P_signal[i]); seg_k.push(P_knock[i]); seg_th.push(theta_time[i]);
+    }
+  }
+  const Nseg=seg_n.length;
+  const hann=seg_n.map((_,i)=>0.5*(1-Math.cos(2*Math.PI*i/(Nseg-1))));
+  const wn=seg_n.map((v,i)=>v*hann[i]);
+  const wk=seg_k.map((v,i)=>v*hann[i]);
+
+  const NFFT=Math.pow(2,Math.ceil(Math.log2(Nseg*8)));
+  const Fn=simpleFFT(wn,NFFT,fs,Nseg);
+  const Fk=simpleFFT(wk,NFFT,fs,Nseg);
+
+  const norm=Math.max(...Fk.mag);
+  return {
+    f_axis: Fn.f,
+    F_normal: Fn.mag.map(v=>v/norm),
+    F_knock: Fk.mag.map(v=>v/norm),
+    P_knock, theta_time, P_ring: t_ring.map((t,i)=>({t:t*1000,v:P_ring[i]/1e5}))
+  };
+}
+
+function simpleFFT(signal, NFFT, fs, Nseg) {
+  const re=new Array(NFFT).fill(0), im=new Array(NFFT).fill(0);
+  for(let i=0;i<signal.length;i++){re[i]=signal[i];}
+  fftInPlace(re,im,NFFT);
+  const half=Math.floor(NFFT/2)+1;
+  const mag=[], f=[];
+  for(let i=0;i<half;i++){
+    let m=Math.sqrt(re[i]*re[i]+im[i]*im[i])/Nseg;
+    if(i>0&&i<half-1) m*=2;
+    mag.push(m);
+    f.push(i*fs/NFFT);
+  }
+  return {mag,f};
+}
+
+function fftInPlace(re,im,N){
+  for(let i=1,j=0;i<N;i++){
+    let bit=N>>1;
+    for(;j&bit;bit>>=1) j^=bit;
+    j^=bit;
+    if(i<j){[re[i],re[j]]=[re[j],re[i]];[im[i],im[j]]=[im[j],im[i]];}
+  }
+  for(let len=2;len<=N;len<<=1){
+    const ang=2*Math.PI/len;
+    const wRe=Math.cos(ang), wIm=-Math.sin(ang);
+    for(let i=0;i<N;i+=len){
+      let curRe=1,curIm=0;
+      for(let j=0;j<len/2;j++){
+        const uR=re[i+j],uI=im[i+j];
+        const vR=re[i+j+len/2]*curRe-im[i+j+len/2]*curIm;
+        const vI=re[i+j+len/2]*curIm+im[i+j+len/2]*curRe;
+        re[i+j]=uR+vR; im[i+j]=uI+vI;
+        re[i+j+len/2]=uR-vR; im[i+j+len/2]=uI-vI;
+        [curRe,curIm]=[curRe*wRe-curIm*wIm,curRe*wIm+curIm*wRe];
+      }
+    }
+  }
+}
+
+function computeKII(F_normal, F_knock, f_axis, f_knock){
+  const BW=1500;
+  const lo=f_knock-BW/2, hi=f_knock+BW/2;
+  let ki_n=0, ki_k=0;
+  for(let i=0;i<f_axis.length;i++){
+    if(f_axis[i]>=lo&&f_axis[i]<=hi){
+      ki_n+=F_normal[i]**2;
+      ki_k+=F_knock[i]**2;
+    }
+  }
+  return ki_n>0?ki_k/ki_n:0;
+}
+
+let charts={};
+function makeChart(id, type, data, opts){
+  if(charts[id]) charts[id].destroy();
+  charts[id]=new Chart(document.getElementById(id),{type,data,options:{...opts,responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},...(opts.plugins||{})}}});
+}
+
+function recompute(){
+  const bore=getVal('bore')/1000;
+  const stroke=getVal('stroke')/1000;
+  const cr=getVal('cr');
+  const rpm=getVal('rpm');
+  const A_knock=getVal('ka')*1e5;
+  const delta_damp=800;
+  const fs=100000;
+  const beta=1.8412, c_gas=900;
+  const f_knock=(beta*c_gas)/(Math.PI*bore);
+  const deg_per_sec=rpm*360/60;
+  const cycle_time=720/deg_per_sec;
+  const N_samples=Math.round(fs*cycle_time);
+  const step=Math.max(1,Math.floor(N_samples/721));
+
+  const {theta,P}=computePressure(bore,stroke,cr,rpm);
+  const P_sub=[], th_sub=[];
+  for(let i=0;i<theta.length;i+=1){P_sub.push(P[i]);th_sub.push(theta[i]);}
+
+  const P_max=Math.max(...P);
+  const idx_max=P.indexOf(P_max);
+  const th_at_peak=theta[idx_max];
+  const P_bdc=P[Math.round(180+360)];
+  const noise_std=0.005*P_max;
+
+  const fft_result=computeFFT(P_sub,th_sub,fs,f_knock,A_knock,delta_damp,rpm);
+  const {f_axis,F_normal,F_knock,P_knock,theta_time,P_ring}=fft_result;
+
+  const search_lo=f_knock-2000, search_hi=f_knock+2000;
+  let peak_amp=0,f_detected=f_knock,normal_at_peak=0;
+  for(let i=0;i<f_axis.length;i++){
+    if(f_axis[i]>=search_lo&&f_axis[i]<=search_hi&&F_knock[i]>peak_amp){
+      peak_amp=F_knock[i]; f_detected=f_axis[i];
+      normal_at_peak=F_normal[i];
+    }
+  }
+  const noise_mask=f_axis.filter((f,i)=>f>1000&&f<20000&&!(f>=search_lo&&f<=search_hi));
+  const nf_vals=f_axis.map((f,i)=>(f>1000&&f<20000&&!(f>=search_lo&&f<=search_hi))?F_knock[i]:null).filter(v=>v!==null);
+  const noise_floor=nf_vals.sort((a,b)=>a-b)[Math.floor(nf_vals.length/2)]||0.001;
+  const peak_SNR=20*Math.log10(peak_amp/noise_floor);
+  const freq_err=100*Math.abs(f_detected-f_knock)/f_knock;
+
+  const ki_ratio=computeKII(F_normal,F_knock,f_axis,f_knock);
+  const threshold=2.5;
+  const knock_detected=ki_ratio>threshold;
+
+  document.getElementById('m-ppeak').textContent=(P_max/1e5).toFixed(1);
+  document.getElementById('m-fknock').textContent=(f_knock/1000).toFixed(2);
+  document.getElementById('m-peakang').textContent=th_at_peak.toFixed(1);
+  document.getElementById('m-pbdc').textContent=(P_bdc/1e5).toFixed(2);
+  document.getElementById('m-ferr').textContent=freq_err.toFixed(3);
+  document.getElementById('m-snr').textContent=peak_SNR.toFixed(1);
+  document.getElementById('m-kiratio').textContent=ki_ratio.toFixed(1);
+
+  const badge=document.getElementById('knock-badge');
+  const box=document.getElementById('decision-box');
+  const lbl=document.getElementById('decision-label');
+  if(knock_detected){
+    badge.className='badge badge-red'; badge.textContent='knock detected';
+    box.className='decision knock-yes'; lbl.textContent='KNOCK DETECTED';
+  } else {
+    badge.className='badge badge-green'; badge.textContent='no knock';
+    box.className='decision knock-no'; lbl.textContent='NO KNOCK';
+  }
+
+  const th_ds=th_sub.filter((_,i)=>i%2===0);
+  const p_ds_n=P_sub.filter((_,i)=>i%2===0).map(v=>v/1e5);
+  const p_ds_k=P_knock.filter((_,i)=>i%2===0).map(v=>v/1e5);
+
+  makeChart('c-pressure','line',{
+    labels:th_ds,
+    datasets:[
+      {label:'Normal',data:p_ds_n,borderColor:'#378ADD',borderWidth:1.5,pointRadius:0,tension:0.3},
+      {label:'Knock',data:p_ds_k,borderColor:'#E24B4A',borderWidth:1,pointRadius:0,tension:0.3,borderDash:[]}
+    ]
+  },{scales:{x:{ticks:{maxTicksLimit:9,color:'#888',font:{size:10}},grid:{color:'rgba(128,128,128,0.1)'},title:{display:true,text:'Crank angle (deg)',color:'#888',font:{size:10}}},y:{ticks:{color:'#888',font:{size:10}},grid:{color:'rgba(128,128,128,0.1)'},title:{display:true,text:'Pressure (bar)',color:'#888',font:{size:10}}}},animation:false});
+
+  const fft_step=Math.max(1,Math.floor(f_axis.length/300));
+  const f_ds=f_axis.filter((_,i)=>i%fft_step===0&&f_axis[i]<=20000);
+  const fn_ds=F_normal.filter((_,i)=>i%fft_step===0&&f_axis[i]<=20000);
+  const fk_ds=F_knock.filter((_,i)=>i%fft_step===0&&f_axis[i]<=20000);
+
+  makeChart('c-fft','line',{
+    labels:f_ds.map(v=>(v/1000).toFixed(1)),
+    datasets:[
+      {label:'Normal',data:fn_ds,borderColor:'#378ADD',borderWidth:1,pointRadius:0,tension:0.2},
+      {label:'Knock',data:fk_ds,borderColor:'#E24B4A',borderWidth:1.5,pointRadius:0,tension:0.2}
+    ]
+  },{scales:{x:{ticks:{maxTicksLimit:6,color:'#888',font:{size:10}},grid:{color:'rgba(128,128,128,0.1)'},title:{display:true,text:'Frequency (kHz)',color:'#888',font:{size:10}}},y:{ticks:{color:'#888',font:{size:10}},grid:{color:'rgba(128,128,128,0.1)'},title:{display:true,text:'Normalised amplitude',color:'#888',font:{size:10}}}},animation:false});
+
+  makeChart('c-ring','line',{
+    labels:P_ring.map(d=>d.t.toFixed(2)),
+    datasets:[{label:'Ring',data:P_ring.map(d=>d.v),borderColor:'#E24B4A',borderWidth:1.5,pointRadius:0,tension:0.1}]
+  },{scales:{x:{ticks:{maxTicksLimit:6,color:'#888',font:{size:10}},title:{display:true,text:'Time from onset (ms)',color:'#888',font:{size:10}},grid:{color:'rgba(128,128,128,0.1)'}},y:{ticks:{color:'#888',font:{size:10}},title:{display:true,text:'ΔP (bar)',color:'#888',font:{size:10}},grid:{color:'rgba(128,128,128,0.1)'}}},animation:false});
+
+  const amp_steps=20;
+  const amp_range=Array.from({length:amp_steps},(_,i)=>i*A_knock*2/amp_steps);
+  const ki_sweep=amp_range.map(A=>{
+    const ring=Array.from({length:Math.min(625,P_sub.length)},(_,i)=>A*Math.exp(-delta_damp*i/fs)*Math.sin(2*Math.PI*f_knock*i/fs));
+    const onset_i=Math.round(370*P_sub.length/721);
+    const Pk=[...P_sub];
+    for(let i=0;i<ring.length&&onset_i+i<Pk.length;i++) Pk[onset_i+i]+=ring[i];
+    const {f_axis:fa,F_normal:Fn2,F_knock:Fk2}=computeFFT(Pk,th_sub,fs,f_knock,0,delta_damp,rpm);
+    return computeKII(F_normal,Fk2,f_axis,f_knock);
+  });
+
+  makeChart('c-sens','line',{
+    labels:amp_range.map(v=>(v/1e5).toFixed(1)),
+    datasets:[
+      {label:'KI ratio',data:ki_sweep,borderColor:'#63991a',borderWidth:2,pointRadius:0,tension:0.3,fill:false},
+      {label:'Threshold',data:amp_range.map(()=>threshold),borderColor:'#E24B4A',borderWidth:1,pointRadius:0,borderDash:[4,4]}
+    ]
+  },{scales:{x:{ticks:{maxTicksLimit:8,color:'#888',font:{size:10}},title:{display:true,text:'Knock amplitude (bar)',color:'#888',font:{size:10}},grid:{color:'rgba(128,128,128,0.1)'}},y:{ticks:{color:'#888',font:{size:10}},title:{display:true,text:'KI ratio',color:'#888',font:{size:10}},grid:{color:'rgba(128,128,128,0.1)'}}},animation:false});
+}
+
+recompute();
+</script>
