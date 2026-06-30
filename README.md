@@ -4,7 +4,7 @@ An interactive engine knock detection system developed using MATLAB, thermodynam
 
 ---
 
-# 📖 Overview
+# Overview
 
 Engine knock is an abnormal combustion phenomenon that can reduce engine performance and cause mechanical damage. This project models the combustion process, simulates cylinder pressure variations, and detects knock using signal processing techniques inspired by modern Engine Control Units (ECUs).
 
@@ -12,7 +12,7 @@ The dashboard enables users to modify engine parameters and instantly visualize 
 
 ---
 
-# ✨ Features
+# Features
 
 - Interactive Engine Knock Detection Dashboard
 - First Law Thermodynamic Pressure Model
@@ -25,7 +25,7 @@ The dashboard enables users to modify engine parameters and instantly visualize 
 
 ---
 
-# 🛠 Technologies Used
+# Technologies Used
 
 - MATLAB
 - MATLAB Live Script
@@ -36,7 +36,7 @@ The dashboard enables users to modify engine parameters and instantly visualize 
 
 ---
 
-# 📚 Mathematical Concepts
+# Mathematical Concepts
 
 - First Law of Thermodynamics
 - Isentropic Compression
@@ -49,7 +49,7 @@ The dashboard enables users to modify engine parameters and instantly visualize 
 
 ---
 
-# ⚙ Dashboard Features
+# Dashboard Features
 
 The interactive dashboard allows users to modify:
 
@@ -69,7 +69,7 @@ and visualize:
 
 ---
 
-# 🔄 Project Workflow
+# Project Workflow
 
 ```
 Input Engine Parameters
@@ -92,7 +92,7 @@ Knock Detection Decision
 
 ---
 
-# 📁 Repository Structure
+# Repository Structure
 
 ```
 Engine-Knock-Detection/
@@ -105,7 +105,7 @@ Engine-Knock-Detection/
 
 ---
 
-# 📸 Dashboard Preview
+# Dashboard Preview
 
 The interactive dashboard provides real-time visualization of engine combustion characteristics and knock detection results.
 
@@ -113,7 +113,7 @@ The interactive dashboard provides real-time visualization of engine combustion 
 
 ---
 
-# 📈 Cylinder Pressure Trace
+# Cylinder Pressure Trace
 
 The cylinder pressure trace is generated using the First Law of Thermodynamics together with the Wiebe Heat Release Model. It represents pressure variation throughout the complete 720° engine cycle.
 
@@ -121,7 +121,7 @@ The cylinder pressure trace is generated using the First Law of Thermodynamics t
 
 ---
 
-# 📊 FFT Spectrum
+# FFT Spectrum
 
 Fast Fourier Transform (FFT) is used to identify the dominant knock frequency from the combustion pressure signal. A significant peak near the resonant frequency indicates engine knock.
 
@@ -129,7 +129,7 @@ Fast Fourier Transform (FFT) is used to identify the dominant knock frequency fr
 
 ---
 
-# 🔔 Knock Ring Signal
+# Knock Ring Signal
 
 The knock ring signal represents the damped pressure oscillations produced after abnormal combustion. It is modeled as a decaying sinusoidal wave.
 
@@ -137,7 +137,7 @@ The knock ring signal represents the damped pressure oscillations produced after
 
 ---
 
-# 📉 Knock Detection Sensitivity
+# Knock Detection Sensitivity
 
 The Knock Intensity (KI) Ratio is compared against a predefined threshold to determine whether knock is present under different operating conditions.
 
@@ -145,7 +145,7 @@ The Knock Intensity (KI) Ratio is compared against a predefined threshold to det
 
 ---
 
-# ✅ Output
+# Output
 
 The dashboard computes and displays:
 
@@ -160,7 +160,7 @@ The dashboard computes and displays:
 
 ---
 
-# 🎯 Applications
+# Applications
 
 - Engine Combustion Analysis
 - Knock Detection Research
@@ -171,7 +171,7 @@ The dashboard computes and displays:
 
 ---
 
-# 🚀 Future Improvements
+# Future Improvements
 
 - Integration with Real Engine Sensor Data
 - Simulink-Based Engine Model
@@ -182,7 +182,7 @@ The dashboard computes and displays:
 
 ---
 
-# 👨‍💻 Author
+# Author
 
 **Sudhishna Ravichandran**
 
